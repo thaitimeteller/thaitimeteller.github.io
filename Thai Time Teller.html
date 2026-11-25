@@ -1,0 +1,341 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Thai Time Teller</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai+Looped:wght@500;600;700&family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: a plain exercise-book page. The day wheel is the only loud thing; everything else is ink on paper. */
+:root{
+  --bg:#FAFAF7; --paper:#FFFFFF; --ink:#1D232B; --muted:#6B7480; --line:#E2E4E0; --soft:#F1F2EE;
+  --accent:#D6452B; --accent-ink:#FFFFFF; --good:#23875A; --bad:#C8402F;
+  --tii:#5566C4; --chao:#E8B03A; --thiang:#EE8A35; --baay:#D9583E; --yen:#B34C80; --thum:#33509E; --mid:#1F2E5E;
+  --head:"Noto Sans Thai Looped","Sarabun","Tahoma",sans-serif;
+  --body:"Sarabun","Noto Sans Thai Looped","Tahoma",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#15181C; --paper:#1C2026; --ink:#ECEEEA; --muted:#9AA1A9; --line:#2D333B; --soft:#242930;
+  --accent:#FF7A5C; --accent-ink:#1A0E0A; --good:#5CC795; --bad:#FF8A78;
+  --tii:#8392E6; --thum:#6683D6; --mid:#4E63A8; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#15181C; --paper:#1C2026; --ink:#ECEEEA; --muted:#9AA1A9; --line:#2D333B; --soft:#242930;
+  --accent:#FF7A5C; --accent-ink:#1A0E0A; --good:#5CC795; --bad:#FF8A78;
+  --tii:#8392E6; --thum:#6683D6; --mid:#4E63A8; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 56px}
+.wrap{max-width:900px;margin:0 auto}
+h1,h2{font-family:var(--head);font-weight:500;margin:0;line-height:1.2;text-wrap:balance}
+h1{font-size:clamp(2.2rem,6vw,3.2rem)}
+h2{font-size:1.35rem}
+p{margin:0}
+.muted{color:var(--muted)}
+.ph{color:var(--muted);font-family:var(--mono);font-size:.9em}
+.opt small{display:block;font-family:var(--mono);font-size:.82rem;color:var(--muted);font-weight:500;margin-top:2px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;padding-bottom:14px;border-bottom:2px solid var(--ink)}
+header small{display:block;font-size:.95rem;color:var(--muted);margin-top:4px}
+nav{display:flex;flex-wrap:wrap;gap:18px}
+nav button{font:500 1rem var(--head);background:none;border:none;color:var(--muted);padding:4px 0;cursor:pointer;border-bottom:3px solid transparent}
+nav button[aria-current="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+section{padding-top:28px}
+.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:28px;align-items:center}
+@media (max-width:720px){.hero{grid-template-columns:minmax(0,1fr)}}
+.ring svg{width:100%;max-width:400px;display:block;margin:0 auto}
+.seg{cursor:pointer}
+.seg:hover{opacity:.8}
+.seglabel{font:600 10px var(--mono);fill:#fff;pointer-events:none}
+.face{fill:var(--paper);stroke:var(--ink);stroke-width:2}
+.tick{stroke:var(--muted)}
+.num{font-family:var(--head);fill:var(--ink)}
+.hand{stroke:var(--ink);stroke-linecap:round}
+.mhand{stroke:var(--accent);stroke-linecap:round}
+.dot{fill:var(--accent)}
+.selring{fill:none;stroke:var(--ink);stroke-width:3}
+.readout{display:flex;flex-direction:column;gap:6px}
+.period{font-size:.95rem;color:var(--muted);display:flex;align-items:center;gap:8px}
+.period i{width:11px;height:11px;border-radius:50%}
+.big{font-family:var(--head);font-size:clamp(2.4rem,7vw,3.4rem);font-weight:500;line-height:1.15}
+.time{font-family:var(--mono);font-size:1.15rem}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{font:500 1rem var(--head);border:2px solid var(--ink);border-radius:8px;padding:8px 16px;cursor:pointer;background:var(--ink);color:var(--bg);display:inline-flex;align-items:center;gap:8px}
+.btn.line{background:transparent;color:var(--ink)}
+.btn svg{width:18px;height:18px}
+input[type=range]{width:100%;accent-color:var(--accent);margin-top:10px}
+.legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:4px 20px;margin-top:28px;padding-top:18px;border-top:1px solid var(--line)}
+.legend button{all:unset;cursor:pointer;display:flex;gap:10px;align-items:baseline;padding:6px 0}
+.legend button:focus-visible{outline:2px solid var(--accent)}
+.legend i{flex:none;width:10px;height:10px;border-radius:50%;transform:translateY(-1px)}
+.legend b{font-weight:600}
+.legend span{color:var(--muted);font-family:var(--mono);font-size:.85rem}
+.extras{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;margin-top:22px}
+@media (max-width:720px){.extras{grid-template-columns:minmax(0,1fr)}}
+.extras h2{font-size:1.05rem;margin-bottom:8px}
+.extras ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.culture{background:var(--soft);border-radius:10px;padding:14px 16px}
+/* games */
+.gtop{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.count{font-family:var(--mono);color:var(--muted)}
+.bar{height:4px;background:var(--line);margin-top:10px}
+.bar span{display:block;height:100%;background:var(--accent);transition:width .3s}
+.stage{display:grid;grid-template-columns:minmax(0,200px) minmax(0,1fr);gap:28px;align-items:center;margin-top:22px}
+@media (max-width:600px){.stage{grid-template-columns:minmax(0,1fr)}}
+.stage svg{width:100%;max-width:200px;display:block;margin:0 auto}
+.digital{font:600 2rem var(--mono)}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
+@media (max-width:460px){.opts{grid-template-columns:minmax(0,1fr)}}
+.opt{font:500 1.15rem var(--body);text-align:left;padding:11px 14px;border-radius:8px;border:2px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer;min-width:0}
+.opt.t{font-family:var(--mono);font-size:1.05rem}
+.opt:hover:not(:disabled){border-color:var(--ink)}
+.opt.right{border-color:var(--good);color:var(--good)}
+.opt.wrong{border-color:var(--bad);color:var(--bad);text-decoration:line-through}
+.opt:disabled{cursor:default}
+.fb{margin-top:16px;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline}
+.fb .mark{font-family:var(--head)}
+.fb .mark.ok{color:var(--good)} .fb .mark.no{color:var(--bad)}
+.thai{font-family:var(--head);font-size:1.5rem;font-weight:500}
+.sentence{font-family:var(--head);font-size:1.6rem}
+.blank{display:inline-block;min-width:3.5em;border-bottom:3px solid var(--accent);text-align:center;color:var(--accent)}
+.label{display:block;margin-top:12px;font-size:.9rem;color:var(--muted)}
+.stars{font-size:2.6rem;color:var(--accent);letter-spacing:.08em}
+.scores{display:flex;flex-wrap:wrap;gap:28px;margin-top:16px}
+.scores b{font:600 1.6rem var(--mono);display:block}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:.9rem;max-width:calc(100% - 32px)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>กี่โมงแล้ว?</h1>
+      <small>Thai Time Teller · Lesson 6 · for beginners</small>
+    </div>
+    <nav id="nav" aria-label="Sections">
+      <button data-go="learn" aria-current="true">Learn</button>
+      <button data-go="g1">Game 1</button>
+      <button data-go="g2">Game 2</button>
+      <button data-go="g3">Game 3</button>
+      <button data-go="res">Score</button>
+    </nav>
+  </header>
+
+  <section id="learn">
+    <p class="muted">Goals: tell the time, ask the time, and talk about your day in Thai.</p>
+    <div class="hero" style="margin-top:18px">
+      <div class="ring" id="ring" aria-label="24-hour day wheel. Tap an hour."></div>
+      <div class="readout">
+        <span class="period" id="rPer"><i></i><span></span></span>
+        <div class="big" id="rTh"></div>
+        <div class="ph" id="rPh"></div>
+        <div class="time" id="rEn"></div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" id="rSpeak" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg>Listen</button>
+        </div>
+        <input type="range" id="slider" min="0" max="47" value="28" aria-label="Move through the day">
+        <div class="muted" id="rFormal" style="font-size:.9rem"></div>
+      </div>
+    </div>
+
+    <div class="legend" id="legend"></div>
+
+    <div class="extras">
+      <div>
+        <h2>Ask the time</h2>
+        <ul>
+          <li><b>กี่โมง</b> <span class="ph">kee mong</span> · any time</li>
+          <li><b>กี่ทุ่ม</b> <span class="ph">kee tum</span> · 7–11 p.m.</li>
+          <li><b>ตีอะไร</b> <span class="ph">tee a-rai</span> · 1–5 a.m.</li>
+          <li style="margin-top:6px"><b>ครึ่ง</b> <span class="ph">krueng</span> = half past · <b>ตรง</b> <span class="ph">trong</span> = sharp</li>
+        </ul>
+      </div>
+      <div class="culture">
+        <h2>Why ตี, โมง, ทุ่ม?</h2>
+        <p>Old Siam told time with sound: a gong by day (“moong”), a drum in the evening (“thum”), and a strike of the gong late at night (ตี).</p>
+      </div>
+    </div>
+    <div class="row" style="margin-top:26px"><button class="btn" data-go="g1" type="button">Play →</button></div>
+  </section>
+
+  <section id="g1" hidden></section>
+  <section id="g2" hidden></section>
+  <section id="g3" hidden></section>
+  <section id="res" hidden></section>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const NUM_TH=['ศูนย์','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า','สิบ','สิบเอ็ด'];
+const NUM_PH=['soon','neung','song','sam','see','ha','hok','jet','paet','gao','sip','sip-et'];
+function numTh(n){ if(n<=11) return NUM_TH[n]; const t=Math.floor(n/10),u=n%10;
+  let s=(t===2?'ยี่':'')+'สิบ'; if(u===1) s+='เอ็ด'; else if(u) s+=NUM_TH[u]; return s;}
+function numPh(n){ if(n<=11) return NUM_PH[n]; const t=Math.floor(n/10),u=n%10;
+  let s=(t===2?'yîi.':'')+'sìp'; if(u===1) s+='.ʔèt'; else if(u) s+='.'+NUM_PH[u]; return s;}
+
+const PERIODS={
+  mid:{name:'midnight',color:'--mid'}, tii:{name:'late night',color:'--tii'}, chao:{name:'morning',color:'--chao'},
+  thiang:{name:'noon',color:'--thiang'}, baay:{name:'afternoon',color:'--baay'}, yen:{name:'evening',color:'--yen'}, thum:{name:'night',color:'--thum'}};
+function periodOf(h){ if(h===0) return 'mid'; if(h<=5) return 'tii'; if(h<=11) return 'chao'; if(h===12) return 'thiang'; if(h<=15) return 'baay'; if(h<=18) return 'yen'; return 'thum'; }
+function say(h,m){
+  const half=m===30,p=periodOf(h); let th,ph;
+  if(p==='mid'){th='เที่ยงคืน';ph='tiang keun';}
+  else if(p==='tii'){th='ตี'+NUM_TH[h];ph='tee '+NUM_PH[h];}
+  else if(p==='chao'){ if(half){th=NUM_TH[h]+'โมง';ph=NUM_PH[h]+' mong';} else {th=NUM_TH[h]+'โมงเช้า';ph=NUM_PH[h]+' mong chao';} }
+  else if(p==='thiang'){th='เที่ยง';ph='tiang';}
+  else if(p==='baay'){ if(h===13){th='บ่ายโมง';ph='bai mong';} else {th='บ่าย'+NUM_TH[h-12]+'โมง';ph='bai '+NUM_PH[h-12]+' mong';} }
+  else if(p==='yen'){ if(half){th=NUM_TH[h-12]+'โมง';ph=NUM_PH[h-12]+' mong';} else {th=NUM_TH[h-12]+'โมงเย็น';ph=NUM_PH[h-12]+' mong yen';} }
+  else {th=NUM_TH[h-18]+'ทุ่ม';ph=NUM_PH[h-18]+' tum';}
+  if(half){th+='ครึ่ง';ph+=' krueng';}
+  return {th,ph,en:en(h,m),p};
+}
+function en(h,m){return (h%12||12)+':'+(m?'30':'00')+' '+(h<12?'a.m.':'p.m.');}
+function spokenNum(h){const p=periodOf(h);return p==='tii'||p==='chao'?h:p==='baay'||p==='yen'?h-12:p==='thum'?h-18:-1;}
+
+function pt(cx,cy,r,a){const t=a*Math.PI/180;return [cx+r*Math.sin(t),cy-r*Math.cos(t)];}
+function clockG(cx,cy,r,h,m){
+  let s=`<circle class="face" cx="${cx}" cy="${cy}" r="${r}"/>`;
+  for(let i=0;i<60;i+=5){const [x1,y1]=pt(cx,cy,r-3,i*6),[x2,y2]=pt(cx,cy,r-10,i*6);s+=`<line class="tick" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke-width="2"/>`;}
+  for(let i=1;i<=12;i++){const [x,y]=pt(cx,cy,r*0.72,i*30);s+=`<text class="num" x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" style="font-size:${r*0.16}px">${i}</text>`;}
+  const [hx,hy]=pt(cx,cy,r*0.48,((h%12)+m/60)*30),[mx,my]=pt(cx,cy,r*0.78,m*6);
+  s+=`<line class="hand" x1="${cx}" y1="${cy}" x2="${hx}" y2="${hy}" stroke-width="${r*0.075}"/><line class="mhand" x1="${cx}" y1="${cy}" x2="${mx}" y2="${my}" stroke-width="${r*0.04}"/><circle class="dot" cx="${cx}" cy="${cy}" r="${r*0.06}"/>`;
+  return s;}
+function clockSVG(h,m){return `<svg viewBox="0 0 200 200" role="img" aria-label="Clock">${clockG(100,100,94,h,m)}</svg>`;}
+function arc(cx,cy,r0,r1,a0,a1){const [x1,y1]=pt(cx,cy,r1,a0),[x2,y2]=pt(cx,cy,r1,a1),[x3,y3]=pt(cx,cy,r0,a1),[x4,y4]=pt(cx,cy,r0,a0);
+  return `M${x1} ${y1}A${r1} ${r1} 0 0 1 ${x2} ${y2}L${x3} ${y3}A${r0} ${r0} 0 0 0 ${x4} ${y4}Z`;}
+const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+let thVoice=null;
+function loadVoices(){try{thVoice=speechSynthesis.getVoices().find(v=>/^th/i.test(v.lang))||null;}catch(e){}}
+try{loadVoices();speechSynthesis.onvoiceschanged=loadVoices;}catch(e){}
+function speak(text){
+  try{if(!thVoice) loadVoices();speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='th-TH';u.rate=.85;if(thVoice) u.voice=thVoice;speechSynthesis.speak(u);
+    if(!thVoice) toast('No Thai voice on this device. Read the phonetic instead.');}
+  catch(e){toast('Audio is not available here.');}
+}
+let actx=null;
+function chime(ok){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();const t=actx.currentTime;
+  (ok?[660,880]:[220,180]).forEach((f,i)=>{const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=f;o.type=ok?'sine':'triangle';
+  g.gain.setValueAtTime(.0001,t+i*.12);g.gain.exponentialRampToValueAtTime(.15,t+i*.12+.02);g.gain.exponentialRampToValueAtTime(.0001,t+i*.12+.25);
+  o.connect(g).connect(actx.destination);o.start(t+i*.12);o.stop(t+i*.12+.3);});}catch(e){}}
+let toastT;function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>el.hidden=true,3000);}
+const speakIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg>';
+
+// ---------- learn ----------
+let cur={h:14,m:0};
+function drawRing(){
+  let s='<svg viewBox="0 0 300 300">';
+  for(let i=0;i<24;i++){
+    s+=`<path class="seg" data-h="${i}" d="${arc(150,150,100,146,i*15+0.6,(i+1)*15-0.6)}" fill="${cssv(PERIODS[periodOf(i)].color)}"><title>${en(i,0)}</title></path>`;
+    const [x,y]=pt(150,150,123,i*15+7.5);s+=`<text class="seglabel" x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central">${i}</text>`;}
+  s+=`<path class="selring" d="${arc(150,150,98,148,cur.h*15,(cur.h+1)*15)}"/>`+clockG(150,150,88,cur.h,cur.m)+'</svg>';
+  const ring=document.getElementById('ring');ring.innerHTML=s;
+  ring.querySelectorAll('.seg').forEach(p=>p.onclick=()=>setTime(+p.dataset.h,cur.m));
+}
+function setTime(h,m){cur={h,m};document.getElementById('slider').value=h*2+(m?1:0);renderLearn();}
+function renderLearn(){
+  const r=say(cur.h,cur.m),P=PERIODS[r.p];drawRing();
+  const per=document.getElementById('rPer');per.querySelector('i').style.background=`var(${P.color})`;per.querySelector('span').textContent=P.name;
+  document.getElementById('rTh').textContent=r.th;document.getElementById('rPh').textContent=r.ph;document.getElementById('rEn').textContent=r.en;
+  document.getElementById('rFormal').textContent=`Formal: ${numTh(cur.h)}นาฬิกา${cur.m?' สามสิบนาที':''} (${String(cur.h).padStart(2,'0')}.${cur.m?'30':'00'})`;
+}
+const LEG=[['ตี + 1–5','1–5 a.m.',2,'tii','tee'],['… โมงเช้า','6–11 a.m.',8,'chao','mong chao'],['เที่ยง','noon',12,'thiang','tiang'],['บ่าย … โมง','1–3 p.m.',14,'baay','bai … mong'],
+ ['… โมงเย็น','4–6 p.m.',17,'yen','mong yen'],['… ทุ่ม','7–11 p.m.',20,'thum','tum'],['เที่ยงคืน','midnight',0,'mid','tiang keun']];
+const leg=document.getElementById('legend');
+leg.innerHTML=LEG.map(l=>`<button type="button" data-h="${l[2]}"><i style="background:var(${PERIODS[l[3]].color})"></i><div><b>${l[0]}</b> <span>(${l[4]})</span><br><span>${l[1]}</span></div></button>`).join('');
+leg.querySelectorAll('button').forEach(b=>b.onclick=()=>setTime(+b.dataset.h,0));
+document.getElementById('slider').oninput=e=>{const v=+e.target.value;cur={h:Math.floor(v/2),m:(v%2)*30};renderLearn();};
+document.getElementById('rSpeak').onclick=()=>speak(say(cur.h,cur.m).th);
+
+// ---------- games ----------
+const rnd=n=>Math.floor(Math.random()*n);
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;};
+function randTime(){let h,m;do{h=rnd(24);m=Math.random()<.3?30:0;}while(h===0&&m===30);return {h,m};}
+function pickTimes(n){const seen=new Set(),out=[],pc=new Set();let guard=0;
+  while(out.length<n&&guard++<500){const t=randTime(),k=t.h+':'+t.m,p=periodOf(t.h);
+    if(seen.has(k)) continue; if(pc.has(p)&&pc.size<6&&guard<200) continue; seen.add(k);pc.add(p);out.push(t);} return out;}
+function distractors(t){
+  const n=spokenNum(t.h),pool=[];
+  for(let h=0;h<24;h++){if(h!==t.h&&(spokenNum(h)===n||h%12===t.h%12)) pool.push({h,m:t.m});}
+  const same=(a,b)=>say(a.h,a.m).th===say(b.h,b.m).th, opts=[t];
+  for(const c of shuffle(pool)){if(opts.length>=4)break;if(!(c.h===0&&c.m===30)&&!opts.some(o=>same(o,c))) opts.push(c);}
+  while(opts.length<4){const c=randTime();if(!opts.some(o=>same(o,c))) opts.push(c);}
+  return shuffle(opts);
+}
+const DIALOG=[
+ {ctx:'1 p.m. — ask the time',pre:'ตอนนี้',post:'แล้วครับ',ans:'กี่โมง',opts:['กี่โมง','กี่ทุ่ม','ตีอะไร'],full:'ตอนนี้กี่โมงแล้วครับ',ph:'ton-nee kee mong laeo krap',en:'What time is it now?'},
+ {ctx:'9 p.m. — ask the time',pre:'ตอนนี้',post:'แล้วคะ',ans:'กี่ทุ่ม',opts:['ตีอะไร','กี่ทุ่ม','กี่โมงเช้า'],full:'ตอนนี้กี่ทุ่มแล้วคะ',ph:'ton-nee kee tum laeo ka',en:'What time is it now?'},
+ {ctx:'3 a.m. — ask the time',pre:'ตอนนี้',post:'แล้วครับ',ans:'ตีอะไร',opts:['กี่ทุ่ม','ตีอะไร','บ่ายกี่โมง'],full:'ตอนนี้ตีอะไรแล้วครับ',ph:'ton-nee tee a-rai laeo krap',en:'What time is it now?'},
+ {ctx:'“Normally I wake up at 6 a.m.”',pre:'ปกติฉัน',post:'ตอนหกโมงเช้าค่ะ',ans:'ตื่นนอน',opts:['เข้านอน','ตื่นนอน','เลิกงาน'],full:'ปกติฉันตื่นนอนตอนหกโมงเช้าค่ะ',ph:'pa-ka-ti chan tuen-non ton hok mong chao ka',en:'Normally I wake up at 6 a.m.'},
+ {ctx:'“I go to bed at 10 p.m.”',pre:'ผมเข้านอนตอน',post:'ครับ',ans:'สี่ทุ่ม',opts:['สิบโมงเช้า','ตีสี่','สี่ทุ่ม'],full:'ผมเข้านอนตอนสี่ทุ่มครับ',ph:'pom kao-non ton see tum krap',en:'I go to bed at 10 p.m.'},
+ {ctx:'“What should we eat this evening?”',pre:'เย็นนี้กินอะไร',post:'คะ',ans:'ดี',opts:['ดี','ก็ได้','แล้ว'],full:'เย็นนี้กินอะไรดีคะ',ph:'yen-nee gin a-rai dee ka',en:'What should we eat this evening?'},
+ {ctx:'“Anything is fine.”',pre:'อะไร',post:'ครับ',ans:'ก็ได้',opts:['ดี','ก็ได้','ไหม'],full:'อะไรก็ได้ครับ',ph:'a-rai gor-dai krap',en:'Anything is fine.'},
+ {ctx:'“Any time is fine.”',pre:'',post:'ค่ะ',ans:'กี่โมงก็ได้',opts:['กี่โมงดี','กี่โมงก็ได้','กี่ทุ่มแล้ว'],full:'กี่โมงก็ได้ค่ะ',ph:'kee mong gor-dai ka',en:'Any time is fine.'},
+ {ctx:'“How about we meet at 5:30 p.m.?”',pre:'เจอกัน',post:'ดีไหมครับ',ans:'ห้าโมงครึ่ง',opts:['ตีห้าครึ่ง','ห้าโมงครึ่ง','ห้าทุ่มครึ่ง'],full:'เจอกันห้าโมงครึ่งดีไหมครับ',ph:'jer-gan ha mong krueng dee mai krap',en:'How about we meet at 5:30 p.m.?'}
+];
+const TITLES={g1:['Read the clock','Pick the Thai words.'],g2:['Listen & match','Pick the right time.'],g3:['Daily talk','Fill in the blank.']};
+const G={};
+function fresh(k){return {i:0,score:0,done:false,hidePh:false,qs:k==='g3'?DIALOG.map(d=>({d,opts:shuffle(d.opts)})):pickTimes(8).map(t=>({t,opts:distractors(t)}))};}
+function newGames(){['g1','g2','g3'].forEach(k=>G[k]=fresh(k));}
+function gameHead(k){const g=G[k];return `<div class="gtop"><div><h2>${TITLES[k][0]}</h2><p class="muted">${TITLES[k][1]}</p></div><span class="count">${Math.min(g.i+1,g.qs.length)}/${g.qs.length} · ${g.score} pts</span></div><div class="bar"><span style="width:${g.i/g.qs.length*100}%"></span></div>`;}
+function renderGame(k){
+  const g=G[k],el=document.getElementById(k);
+  if(g.i>=g.qs.length){g.done=true;
+    el.innerHTML=gameHead(k)+`<p class="sentence" style="margin-top:22px">${g.score}/${g.qs.length}</p>
+    <div class="row" style="margin-top:14px"><button class="btn" type="button" data-next>${k==='g3'?'See score':'Next game →'}</button><button class="btn line" type="button" data-retry>Again</button></div>`;
+    el.querySelector('[data-next]').onclick=()=>show(k==='g1'?'g2':k==='g2'?'g3':'res');
+    el.querySelector('[data-retry]').onclick=()=>{G[k]=fresh(k);renderGame(k);};
+    return;}
+  const q=g.qs[g.i];let body='';
+  if(k==='g1'){
+    body=`<div class="stage">${clockSVG(q.t.h,q.t.m)}<div><div class="digital">${en(q.t.h,q.t.m)}</div>
+    <div class="opts">${q.opts.map((o,j)=>`<button class="opt" type="button" data-j="${j}">${say(o.h,o.m).th}<small>${say(o.h,o.m).ph}</small></button>`).join('')}</div></div></div>`;}
+  else if(k==='g2'){const r=say(q.t.h,q.t.m);
+    body=`<div class="stage"><div><div class="thai">${r.th}</div>${g.hidePh?'':`<div class="ph">${r.ph}</div>`}
+    <div class="row" style="margin-top:10px"><button class="btn line" type="button" data-speak>${speakIcon}Listen</button></div>
+    <label class="label"><input type="checkbox" id="hidePh" ${g.hidePh?'checked':''}> hide karaoke</label></div>
+    <div class="opts" style="margin-top:0">${q.opts.map((o,j)=>`<button class="opt t" type="button" data-j="${j}">${en(o.h,o.m)}</button>`).join('')}</div></div>`;}
+  else {const d=q.d;
+    body=`<div style="margin-top:22px"><p class="muted">${d.ctx}</p><p class="sentence" style="margin-top:6px">${d.pre}<span class="blank">?</span>${d.post}</p>
+    <div class="opts">${q.opts.map((o,j)=>`<button class="opt" type="button" data-j="${j}">${o}</button>`).join('')}</div></div>`;}
+  el.innerHTML=gameHead(k)+body+`<div id="${k}fb"></div>`;
+  const sp=el.querySelector('[data-speak]');if(sp) sp.onclick=()=>speak(say(q.t.h,q.t.m).th);
+  const hp=el.querySelector('#hidePh');if(hp) hp.onchange=()=>{g.hidePh=hp.checked;renderGame(k);};
+  el.querySelectorAll('.opt').forEach(b=>b.onclick=()=>answer(k,+b.dataset.j));
+}
+function answer(k,j){
+  const g=G[k],q=g.qs[g.i],el=document.getElementById(k);
+  const isAns=i=>k==='g3'?q.opts[i]===q.d.ans:(q.opts[i].h===q.t.h&&q.opts[i].m===q.t.m);
+  const ok=isAns(j);let th,ph,meaning;
+  if(k==='g3'){th=q.d.full;ph=q.d.ph;meaning=q.d.en;el.querySelector('.blank').textContent=q.d.ans;}
+  else {const r=say(q.t.h,q.t.m);th=r.th;ph=r.ph;meaning=r.en;}
+  el.querySelectorAll('.opt').forEach((b,i)=>{b.disabled=true;if(isAns(i)) b.classList.add('right');else if(i===j) b.classList.add('wrong');});
+  if(ok) g.score++;chime(ok);
+  document.getElementById(k+'fb').innerHTML=`<div class="fb"><span class="mark ${ok?'ok':'no'}">${ok?'ถูก ✓':'ยัง ✗'}</span><b>${th}</b><span class="ph">${ph}</span><span>${meaning}</span></div>
+  <div class="row" style="margin-top:12px"><button class="btn" type="button" data-cont>Next</button><button class="btn line" type="button" data-say>${speakIcon}</button></div>`;
+  const cont=el.querySelector('[data-cont]');cont.onclick=()=>{g.i++;renderGame(k);};cont.focus();
+  el.querySelector('[data-say]').setAttribute('aria-label','Listen');
+  el.querySelector('[data-say]').onclick=()=>speak(th);
+}
+function renderResults(){
+  const ks=['g1','g2','g3'],tot=ks.reduce((s,k)=>s+G[k].score,0),max=ks.reduce((s,k)=>s+G[k].qs.length,0);
+  const pct=tot/max,stars=pct>=.9?3:pct>=.6?2:pct>0?1:0;
+  const msg=['Play the games to get stars.','สู้ ๆ — try the wheel again.','ดีมาก — almost there.','เก่งมาก!'][stars];
+  document.getElementById('res').innerHTML=`<div class="stars" aria-label="${stars} of 3 stars">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</div>
+  <h2>${tot}/${max} · ${msg}</h2>
+  <div class="scores">${ks.map(k=>`<div><span class="muted">${TITLES[k][0]}</span><b>${G[k].score}/${G[k].qs.length}</b></div>`).join('')}</div>
+  <p style="margin-top:22px">Now say your own day: <b>ปกติผม/ฉันตื่นนอนตอน…</b></p>
+  <div class="row" style="margin-top:18px"><button class="btn" type="button" id="again">Play again</button><button class="btn line" type="button" data-go="learn">Learn</button></div>`;
+  document.getElementById('again').onclick=()=>{newGames();ks.forEach(renderGame);show('g1');};
+  bindGo(document.getElementById('res'));
+}
+const SECTIONS=['learn','g1','g2','g3','res'];
+function show(id){SECTIONS.forEach(s=>document.getElementById(s).hidden=s!==id);
+  document.querySelectorAll('#nav button').forEach(b=>b.setAttribute('aria-current',b.dataset.go===id?'true':'false'));
+  if(id==='res') renderResults();window.scrollTo({top:0,behavior:'smooth'});}
+function bindGo(root){root.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>show(b.dataset.go));}
+
+newGames();['g1','g2','g3'].forEach(renderGame);renderLearn();bindGo(document);
+try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',renderLearn);}catch(e){}
+new MutationObserver(renderLearn).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+</script>
+
+</body></html>
